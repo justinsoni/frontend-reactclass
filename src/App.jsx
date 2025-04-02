@@ -1,8 +1,8 @@
 import React from 'react';
-import Header from './components/header';
-import Navbar from './components/navbar';
-import Footer from './components/footer';
-import AddTask from './components/addtask';
+import Header from './components/Header';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import AddTask from './components/Addtask';
 
 
 function App() {
