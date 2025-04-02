@@ -12,7 +12,7 @@ const Addtask = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/get");
+      const response = await fetch("https://backend-reactclass.onrender.com/api/get");
       const data = await response.json();
       
       console.log('Fetched tasks:', data); // Add this log
@@ -34,7 +34,7 @@ const Addtask = () => {
     if (newTask.trim() === "") return; // Prevent adding empty tasks
 
     try {
-      const response = await fetch("http://localhost:3000/api/", {
+      const response = await fetch("https://backend-reactclass.onrender.com/api/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,7 +55,7 @@ const Addtask = () => {
 
   const toggleTaskCompletion = async (taskId, currentStatus) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/${taskId}`, {
+      const response = await fetch(`https://backend-reactclass.onrender.com/api/${taskId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
