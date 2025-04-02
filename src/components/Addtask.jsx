@@ -9,7 +9,7 @@ const Addtask = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_BASE_URL = "https://backend-reactclass.onrender.com/api";
+  const API_BASE_URL = "http://localhost:3000/api";
 
   useEffect(() => {
     fetchTasks();
@@ -19,7 +19,8 @@ const Addtask = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/get`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch tasks: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch tasks");
       }
       const data = await response.json();
       setTasks(data);
@@ -32,22 +33,30 @@ const Addtask = () => {
     }
   };
 
-  const handleAddTask = async () => {
+  const handleAddTask = async (e) => {
+    e.preventDefault(); // Prevent form submission
     if (newTask.trim() === "") return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}`, {
+      const response = await fetch(API_BASE_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: newTask, completed: false }),
+        body: JSON.stringify({
+          text: newTask,
+          completed: false
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to add task: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add task");
       }
 
+      const addedTask = await response.json();
+      console.log("Task added successfully:", addedTask);
+      
       setNewTask("");
       fetchTasks();
       setError(null);
@@ -141,7 +150,7 @@ const Addtask = () => {
     <div className="task-list">
       {error && <div className="error-message">{error}</div>}
       
-      <div className="add-task">
+      <form onSubmit={handleAddTask} className="add-task">
         <input
           type="text"
           value={newTask}
@@ -149,10 +158,10 @@ const Addtask = () => {
           placeholder="Enter a new task"
           className="task-input"
         />
-        <button onClick={handleAddTask} className="add-button">
+        <button type="submit" className="add-button">
           Add Task
         </button>
-      </div>
+      </form>
 
       <div className="task-list">
         {loading ? (
