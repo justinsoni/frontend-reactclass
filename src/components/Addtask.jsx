@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 
 const Addtask = () => {
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState("");  // State for new task input
-  const [loading, setLoading] = useState(true);  // Loading state
+  const [newTask, setNewTask] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // Fetch tasks when the component mounts
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -13,25 +14,18 @@ const Addtask = () => {
   const fetchTasks = async () => {
     try {
       const response = await fetch("https://backend-reactclass.onrender.com/api/get");
+      if (!response.ok) throw new Error("Failed to fetch tasks");
       const data = await response.json();
-      
-      console.log('Fetched tasks:', data); // Add this log
-      
-      if (Array.isArray(data)) {
-        setTasks(data);
-      } else {
-        console.error("Fetched data is not an array");
-      }
+      setTasks(data);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching tasks:", error);
-    } finally {
-      setLoading(false);  // Set loading to false when the fetch is done
+      setLoading(false);
     }
   };
-  
 
   const handleAddTask = async () => {
-    if (newTask.trim() === "") return; // Prevent adding empty tasks
+    if (newTask.trim() === "") return;
 
     try {
       const response = await fetch("https://backend-reactclass.onrender.com/api/", {
@@ -39,12 +33,12 @@ const Addtask = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: newTask, completed: false }), // Adjust if you need different fields
+        body: JSON.stringify({ text: newTask, completed: false }),
       });
 
       if (response.ok) {
-        setNewTask(""); // Reset input field after successful add
-        fetchTasks(); // Refetch tasks to update the list
+        setNewTask("");
+        fetchTasks();
       } else {
         console.error("Failed to add task");
       }
@@ -53,18 +47,68 @@ const Addtask = () => {
     }
   };
 
-  const toggleTaskCompletion = async (taskId, currentStatus) => {
+  const handleEdit = (task) => {
+    setEditingId(task._id);
+    setEditText(task.text);
+  };
+
+  const handleUpdate = async (id) => {
+    if (editText.trim() === "") return;
+
+    console.log("Updating task with ID:", id, "New text:", editText);
+
     try {
-      const response = await fetch(`https://backend-reactclass.onrender.com/api/${taskId}`, {
+      const response = await fetch(`https://backend-reactclass.onrender.com/api/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ completed: !currentStatus }),
+        body: JSON.stringify({ text: editText }),
       });
 
       if (response.ok) {
-        fetchTasks(); // Refetch tasks to update the list
+        console.log("Task updated successfully");
+        setEditingId(null);
+        fetchTasks();
+      } else {
+        console.error("Failed to update task");
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    console.log("Deleting task with ID:", id);
+
+    try {
+      const response = await fetch(`https://backend-reactclass.onrender.com/api/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        console.log("Task deleted successfully");
+        fetchTasks();
+      } else {
+        console.error("Failed to delete task");
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
+  };
+
+  const toggleTaskCompletion = async (id, completed) => {
+    try {
+      const response = await fetch(`https://backend-reactclass.onrender.com/api/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ completed: !completed }),
+      });
+
+      if (response.ok) {
+        fetchTasks();
       } else {
         console.error("Failed to toggle task completion");
       }
@@ -91,27 +135,46 @@ const Addtask = () => {
 
       {/* Render Tasks */}
       <div className="task-list">
-  {loading ? (
-    <p>Loading tasks...</p> // Loading message
-  ) : tasks.length === 0 ? (
-    <p>No tasks available</p> // Message if no tasks are available
-  ) : (
-    tasks.map((task) => {
-      console.log('Rendering task:', task); // Add this log
-      return (
-        <div key={task._id} className="task-item">
-          <span
-            className={task.completed ? "completed" : ""}
-            onClick={() => toggleTaskCompletion(task._id, task.completed)}
-          >
-            {task.text}
-          </span>
-        </div>
-      );
-    })
-  )}
-</div>
-
+        {loading ? (
+          <p>Loading tasks...</p>
+        ) : tasks.length === 0 ? (
+          <p>No tasks available</p>
+        ) : (
+          tasks.map((task) => (
+            <div key={task._id} className="task-item">
+              {editingId === task._id ? (
+                <div>
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="edit-input"
+                  />
+                  <button onClick={() => handleUpdate(task._id)} className="update-button">
+                    Update
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="cancel-button">
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <span
+                  className={task.completed ? "completed" : ""}
+                  onClick={() => toggleTaskCompletion(task._id, task.completed)}
+                >
+                  {task.text}
+                </span>
+              )}
+              <button onClick={() => handleEdit(task)} className="edit-button">
+                Edit
+              </button>
+              <button onClick={() => handleDelete(task._id)} className="delete-button">
+                Delete
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
