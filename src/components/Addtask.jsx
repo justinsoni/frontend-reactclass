@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import "./Addtask.css";
 
 const Addtask = () => {
   const [tasks, setTasks] = useState([]);
@@ -6,6 +7,9 @@ const Addtask = () => {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const API_BASE_URL = "http://localhost:3000/api";
 
   useEffect(() => {
     fetchTasks();
@@ -13,13 +17,17 @@ const Addtask = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch("https://backend-reactclass.onrender.com/api/get");
-      if (!response.ok) throw new Error("Failed to fetch tasks");
+      const response = await fetch(`${API_BASE_URL}/get`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tasks: ${response.statusText}`);
+      }
       const data = await response.json();
       setTasks(data);
       setLoading(false);
+      setError(null);
     } catch (error) {
       console.error("Error fetching tasks:", error);
+      setError("Failed to load tasks. Please try again.");
       setLoading(false);
     }
   };
@@ -28,7 +36,7 @@ const Addtask = () => {
     if (newTask.trim() === "") return;
 
     try {
-      const response = await fetch("https://backend-reactclass.onrender.com/api/", {
+      const response = await fetch(`${API_BASE_URL}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -36,29 +44,30 @@ const Addtask = () => {
         body: JSON.stringify({ text: newTask, completed: false }),
       });
 
-      if (response.ok) {
-        setNewTask("");
-        fetchTasks();
-      } else {
-        console.error("Failed to add task");
+      if (!response.ok) {
+        throw new Error(`Failed to add task: ${response.statusText}`);
       }
+
+      setNewTask("");
+      fetchTasks();
+      setError(null);
     } catch (error) {
       console.error("Error adding task:", error);
+      setError("Failed to add task. Please try again.");
     }
   };
 
   const handleEdit = (task) => {
     setEditingId(task._id);
     setEditText(task.text);
+    setError(null);
   };
 
   const handleUpdate = async (id) => {
     if (editText.trim() === "") return;
 
-    console.log("Updating task with ID:", id, "New text:", editText);
-
     try {
-      const response = await fetch(`https://backend-reactclass.onrender.com/api/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -66,40 +75,49 @@ const Addtask = () => {
         body: JSON.stringify({ text: editText }),
       });
 
-      if (response.ok) {
-        console.log("Task updated successfully");
-        setEditingId(null);
-        fetchTasks();
-      } else {
-        console.error("Failed to update task");
+      if (!response.ok) {
+        throw new Error(`Failed to update task: ${response.statusText}`);
       }
+
+      const updatedTask = await response.json();
+      console.log("Task updated successfully:", updatedTask);
+      
+      setEditingId(null);
+      fetchTasks();
+      setError(null);
     } catch (error) {
       console.error("Error updating task:", error);
+      setError("Failed to update task. Please try again.");
     }
   };
 
   const handleDelete = async (id) => {
-    console.log("Deleting task with ID:", id);
-
     try {
-      const response = await fetch(`https://backend-reactclass.onrender.com/api/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      if (response.ok) {
-        console.log("Task deleted successfully");
-        fetchTasks();
-      } else {
-        console.error("Failed to delete task");
+      if (!response.ok) {
+        throw new Error(`Failed to delete task: ${response.statusText}`);
       }
+
+      const result = await response.json();
+      console.log("Delete response:", result);
+      
+      fetchTasks();
+      setError(null);
     } catch (error) {
       console.error("Error deleting task:", error);
+      setError("Failed to delete task. Please try again.");
     }
   };
 
   const toggleTaskCompletion = async (id, completed) => {
     try {
-      const response = await fetch(`https://backend-reactclass.onrender.com/api/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -107,19 +125,22 @@ const Addtask = () => {
         body: JSON.stringify({ completed: !completed }),
       });
 
-      if (response.ok) {
-        fetchTasks();
-      } else {
-        console.error("Failed to toggle task completion");
+      if (!response.ok) {
+        throw new Error(`Failed to toggle task completion: ${response.statusText}`);
       }
+
+      fetchTasks();
+      setError(null);
     } catch (error) {
       console.error("Error toggling task completion:", error);
+      setError("Failed to update task status. Please try again.");
     }
   };
 
   return (
     <div className="task-list">
-      {/* Add Task Form */}
+      {error && <div className="error-message">{error}</div>}
+      
       <div className="add-task">
         <input
           type="text"
@@ -133,7 +154,6 @@ const Addtask = () => {
         </button>
       </div>
 
-      {/* Render Tasks */}
       <div className="task-list">
         {loading ? (
           <p>Loading tasks...</p>
@@ -143,7 +163,7 @@ const Addtask = () => {
           tasks.map((task) => (
             <div key={task._id} className="task-item">
               {editingId === task._id ? (
-                <div>
+                <div className="edit-mode">
                   <input
                     type="text"
                     value={editText}
@@ -158,19 +178,23 @@ const Addtask = () => {
                   </button>
                 </div>
               ) : (
-                <span
-                  className={task.completed ? "completed" : ""}
-                  onClick={() => toggleTaskCompletion(task._id, task.completed)}
-                >
-                  {task.text}
-                </span>
+                <>
+                  <span
+                    className={task.completed ? "completed" : ""}
+                    onClick={() => toggleTaskCompletion(task._id, task.completed)}
+                  >
+                    {task.text}
+                  </span>
+                  <div className="task-actions">
+                    <button onClick={() => handleEdit(task)} className="edit-button">
+                      Edit
+                    </button>
+                    <button onClick={() => handleDelete(task._id)} className="delete-button">
+                      Delete
+                    </button>
+                  </div>
+                </>
               )}
-              <button onClick={() => handleEdit(task)} className="edit-button">
-                Edit
-              </button>
-              <button onClick={() => handleDelete(task._id)} className="delete-button">
-                Delete
-              </button>
             </div>
           ))
         )}
