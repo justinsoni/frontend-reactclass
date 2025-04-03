@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import './Addtask.css';
+import styles from "./Addtask.css?inline";
 
 const Addtask = () => {
   const [tasks, setTasks] = useState([]);
