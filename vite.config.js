@@ -20,7 +20,8 @@ export default defineConfig({
   },
   css: {
     modules: {
-      localsConvention: 'camelCase'
+      localsConvention: 'camelCase',
+      generateScopedName: '[name]__[local]___[hash:base64:5]'
     }
   }
 })
